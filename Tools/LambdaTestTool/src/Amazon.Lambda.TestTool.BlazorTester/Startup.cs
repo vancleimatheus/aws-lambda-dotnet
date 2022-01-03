@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
+using Amazon.Lambda.TestTool.BlazorTester.Services;
 
 using Blazored.Modal;
 
@@ -70,6 +70,8 @@ namespace Amazon.Lambda.TestTool.BlazorTester
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<IRuntimeApiDataStore, RuntimeApiDataStore>();
+            services.AddControllers();
             services.AddRazorPages();
             services.AddServerSideBlazor();
 
@@ -96,6 +98,7 @@ namespace Amazon.Lambda.TestTool.BlazorTester
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapControllers();
                 endpoints.MapBlazorHub();
                 endpoints.MapFallbackToPage("/_Host");
             });
