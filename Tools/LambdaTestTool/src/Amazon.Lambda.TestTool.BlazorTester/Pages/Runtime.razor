@@ -14,7 +14,8 @@
 </p>
 
 <div class="row">
-    <div class="col-sm form-group">
+    <div class="col-sm-6">
+        <h3>Queue Event:</h3>
         <label class="" for="sample-requests">Example Requests:</label>
         <select class="control" id="sample-requests" @bind="SelectedSampleRequestName">
             <option id="void-select-request"> -- select a request -- </option>
@@ -41,15 +42,13 @@
             }
         </select>
         <label class="col-xs-3 control-label" for="function-payload">Function Input:</label>
-        <textarea class="form-control" rows="10" @bind="FunctionInput" placeholder="JSON document as input to Lambda Function. Plain strings must be wrapped in quotes."></textarea>
-        <p style="margin-top:10px">
-            <b>Tip:</b> If a Lambda function using the default serializer, Amazon.Lambda.Serialization.Json, is deployed with the environment variable <b>LAMBDA_NET_SERIALIZER_DEBUG</b> set to <b>true</b>
-            the JSON input for the Lambda function will be written to CloudWatch Logs. The captured JSON can then be used in this tool to step
-            through the code.
-        </p>        
+        <textarea class="form-control" style="margin: 5px" rows="10" @bind="FunctionInput" placeholder="JSON document as input to Lambda Function. Plain strings must be wrapped in quotes."></textarea>
+        <div class="col-sm form-group">
+            <button class="btn btn-primary btn-sm" @onclick="OnAddEventClick">Queue Event</button>
+        </div>
     </div>
-    <div class="col-sm form-group">
-        <label class="" for="sample-requests">Active Event:</label>
+    <div class="col-sm-6">
+        <h3>Active Event:</h3>
         @if (RuntimeApiModel.ActiveEvent == null)
         {
             <h2>No active event</h2>
@@ -58,8 +57,10 @@
         {
             <form>
                   <div id="from">
+                      <p>Request ID: @RuntimeApiModel.ActiveEvent.AwsRequestId</p>
                       <p>Status: @RuntimeApiModel.ActiveEvent.EventStatus</p>
                       <P>Last Updated: @RuntimeApiModel.ActiveEvent.LastUpdated</P>
+                      <p>Event JSON:<div class="event-value"><span class="fake-link" @onclick="() => ShowEventJson(RuntimeApiModel.ActiveEvent)">@CreateSnippet(RuntimeApiModel.ActiveEvent.EventJson)</span></div></p>
                       @if (RuntimeApiModel.ActiveEvent.EventStatus == IEventContainer.Status.Failure)
                       {
                           <p>Error Type: @RuntimeApiModel.ActiveEvent.ErrorType</p>
@@ -81,81 +82,69 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-sm form-group">
-
-    </div>
-</div>
-
-<div class="row mt-3">
-    <div class="col-sm form-group">
-        <button class="btn btn-primary btn-sm" @onclick="OnAddEventClick">Queue Event</button>
-    </div>
-</div>
 
 <div class="row">
-    <div class="col-sm form-group">
-        <label class="col-xs-3 control-label">Queued Events</label>
-        <div class="col-xs-5">
-            <select class="form-control">
-                @foreach (var evnt in @RuntimeApiModel.QueuedEvents)
-                {
-                    <option value="@evnt.AwsRequestId">@evnt.AwsRequestId</option>
-                }
-            </select>
-        </div>
-    </div>
-    <div class="col-sm form-group">
-        <label class="col-xs-3 control-label">Executed Events</label>
-        <div class="col-xs-5">
-            <select class="form-control">
-                @foreach (var evnt in @RuntimeApiModel.ExecutedEvents)
-                {
-                    <option value="@evnt.AwsRequestId">@evnt.AwsRequestId</option>
-                }
-            </select>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-sm form-group">
-        <label class="" for="sample-requests">Example Requests:</label>
-        <select class="control" id="sample-requests" @bind="SelectedSampleRequestName">
-            <option id="void-select-request"> -- select a request -- </option>
-            @if (@SampleRequests.ContainsKey(SampleRequestManager.SAVED_REQUEST_GROUP))
+    <div class="col-sm-6">
+        <h3>Queued Events</h3>
+        <div class="col-xs-5 event-list">
+            @foreach (var evnt in @RuntimeApiModel.QueuedEvents)
             {
-                <optgroup id="saved-select-request-group" label="@SampleRequestManager.SAVED_REQUEST_GROUP">
-                    @foreach (var request in SampleRequests[SampleRequestManager.SAVED_REQUEST_GROUP])
+                <div class="event-list-item">
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Request ID:</div><div class="event-value"> @evnt.AwsRequestId</div>
+                        <div class="event-label">Last Updated:</div><div class="event-value">@evnt.LastUpdated</div>
+                    </div>
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Event JSON:</div><div class="event-value"><span class="fake-link" @onclick="() => ShowEventJson(evnt)">@CreateSnippet(evnt.EventJson)</span></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <h3>Executed Events</h3>
+        <div class="col-xs-5 event-list">
+            @foreach (var evnt in @RuntimeApiModel.ExecutedEvents.OrderByDescending(x => x.LastUpdated))
+            {
+                <div class="event-list-item">
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Request ID:</div><div class="event-value"> @evnt.AwsRequestId</div>
+                        <div class="event-label">Status:</div><div class="event-value">@evnt.EventStatus</div>
+                        <div class="event-label">Last Updated:</div><div class="event-value">@evnt.LastUpdated</div>
+                    </div>
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Event JSON:</div><div class="event-value"><span class="fake-link" @onclick="() => ShowEventJson(evnt)">@CreateSnippet(evnt.EventJson)</span></div>
+                    </div>
+                    @if(evnt.EventStatus == IEventContainer.Status.Success)
                     {
-                        <option value="@request.Filename">@request.Name</option>
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Response: </div><div class="event-value"><span class="fake-link" @onclick="() => ShowResponse(evnt)">@CreateSnippet(evnt.Response)</span></div>
+                    </div>
                     }
-                </optgroup>
+                    else if(evnt.EventStatus == IEventContainer.Status.Failure)
+                    {
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Error Type:</div><div class="event-value">@evnt.ErrorType</div>
+                    </div>
+                    <div class="row" style="padding: 2px">
+                        <div class="event-label">Error Response: </div><div class="event-value"><span class="fake-link" @onclick="() => ShowError(evnt)">@CreateSnippet(evnt.ErrorResponse)</span></div>
+                    </div>
+                    }
+                </div>
             }
-            @foreach (var group in SampleRequests.Keys)
-            {
-                @if (!string.Equals(group, SampleRequestManager.SAVED_REQUEST_GROUP))
-                {
-                    <optgroup label="@group">
-                        @foreach (var request in SampleRequests[group])
-                        {
-                            <option value="@request.Filename">@request.Name</option>
-                        }
-                    </optgroup>
-                }
-            }
-        </select>
+        </div>
     </div>
 </div>
+
 
 
 
 @code {
-    
+
     private string FunctionInput { get; set; }
-    
+
     private IDictionary<string, IList<LambdaRequest>> SampleRequests { get; set; }
-    
+
     string _selectedSampleRequestName;
     string SelectedSampleRequestName
     {
@@ -169,18 +158,18 @@
     }
 
     SampleRequestManager SampleRequestManager { get; set; }
-    
+
     protected override void OnInitialized()
     {
         RuntimeApiModel.StateChange += RuntimeApiModelOnStateChange;
         this.SampleRequestManager = new SampleRequestManager(LambdaOptions.GetPreferenceDirectory(false));
         this.SampleRequests = SampleRequestManager.GetSampleRequests();
 
-        RuntimeApiModel.QueueEvent("{\"body\" : \"main\"}");
-        
-        RuntimeApiModel.TryActivateEvent(out var evnt);
+        //RuntimeApiModel.QueueEvent("{\"body\" : \"main\"}");
+
+        //RuntimeApiModel.TryActivateEvent(out var evnt);
         //RuntimeApiModel.ReportError(evnt.AwsRequestId, "BadRequest", "fsdnslkngelkgnene;g");
-        RuntimeApiModel.ReportSuccess(evnt.AwsRequestId, "Lots of data goes here");
+        //RuntimeApiModel.ReportSuccess(evnt.AwsRequestId, "Lots of data goes here");
     }
 
     private void RuntimeApiModelOnStateChange(object sender, EventArgs e)
@@ -193,5 +182,43 @@
         RuntimeApiModel.QueueEvent(this.FunctionInput);
         this.FunctionInput = "";
         this.StateHasChanged();
-    }    
+    }
+
+    string CreateSnippet(string fullString)
+    {
+        const int maxLength = 50;
+        string trim;
+        if (fullString?.Length < maxLength)
+        {
+            trim = fullString;
+        }
+        else
+        {
+            trim = fullString.Substring(0, maxLength);
+        }
+
+        return trim;
+    }
+
+    void ShowEventJson(IEventContainer evnt)
+    {
+        ShowExpandedText("Event JSON", evnt.EventJson);
+    }
+
+    void ShowResponse(IEventContainer evnt)
+    {
+        ShowExpandedText("Response", evnt.Response);
+    }
+
+    void ShowError(IEventContainer evnt)
+    {
+        ShowExpandedText("Error Response", evnt.ErrorResponse);
+    }
+
+    void ShowExpandedText(string title, string text)
+    {
+        var parameters = new ModalParameters();
+        parameters.Add(ExpandedTextDialog.PARAMETER_NAME_FULL_TEXT, text);
+        Modal.Show<ExpandedTextDialog>(title, parameters);
+    }
 }

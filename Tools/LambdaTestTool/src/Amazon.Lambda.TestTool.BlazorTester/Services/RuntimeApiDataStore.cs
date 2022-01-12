@@ -69,6 +69,7 @@ namespace Amazon.Lambda.TestTool.BlazorTester.Services
                 }
                 ActiveEvent = evnt;
                 activeEvent = ActiveEvent;
+                RaiseStateChanged();
                 Monitor.PulseAll(_lock);
                 return true;
             }
@@ -184,6 +185,7 @@ namespace Amazon.Lambda.TestTool.BlazorTester.Services
         public enum Status {Queued, Executing, Success, Failure}
         
         string AwsRequestId { get; }
+        string EventJson { get; }
         string ErrorResponse { get; }
         string ErrorType { get; }
         
@@ -200,6 +202,7 @@ namespace Amazon.Lambda.TestTool.BlazorTester.Services
         
         private const string defaultFunctionArn = "arn:aws:lambda:us-west-2:123412341234:function:Function";
         public string AwsRequestId { get; }
+        public string EventJson { get; }
         public string ErrorResponse { get; private set; }
         
         public string ErrorType { get; private set; }
@@ -220,12 +223,12 @@ namespace Amazon.Lambda.TestTool.BlazorTester.Services
         }
 
         private readonly RuntimeApiDataStore _dataStore;
-        public EventContainer(RuntimeApiDataStore dataStore, int eventCount, string eventResponse)
+        public EventContainer(RuntimeApiDataStore dataStore, int eventCount, string eventJson)
         {
             LastUpdated = DateTime.Now;
             this._dataStore = dataStore;
             this.AwsRequestId = eventCount.ToString("D12");
-            this.ErrorResponse = eventResponse;
+            this.EventJson = eventJson;
         }
 
         public string FunctionArn

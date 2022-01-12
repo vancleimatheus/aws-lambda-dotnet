@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Amazon.Lambda.TestTool.BlazorTester.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +38,7 @@ namespace Amazon.Lambda.TestTool.BlazorTester.Controllers
         }
         
         [HttpGet("/2018-06-01/runtime/invocation/next")]
-        public async Task<IActionResult> GetNextInvocation()
+        public async Task GetNextInvocation()
         {
             IEventContainer activeEvent;
             while (!_runtimeApiDataStore.TryActivateEvent(out activeEvent))
@@ -51,14 +52,17 @@ namespace Amazon.Lambda.TestTool.BlazorTester.Controllers
             Response.Headers["Lambda-Runtime-Aws-Request-Id"] = activeEvent.AwsRequestId;
             Response.Headers["Lambda-Runtime-Trace-Id"] = Guid.NewGuid().ToString();
             Response.Headers["Lambda-Runtime-Invoked-Function-Arn"] = activeEvent.FunctionArn;
+            Response.StatusCode = 200;
 
-            if (activeEvent.ErrorResponse?.Length != 0)
+            if (activeEvent.EventJson?.Length != 0)
             {
+                // The event is written directly to the response stream to avoid ASP.NET Core attempting any
+                // encoding on content passed in the Ok() method.
                 Response.Headers["Content-Type"] = "application/json";
-                return Ok(activeEvent.ErrorResponse);
+                var buffer = UTF8Encoding.UTF8.GetBytes(activeEvent.EventJson);
+                await Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                Response.Body.Close();
             }
-            
-            return Ok();
         }
         
         [HttpPost("/2018-06-01/runtime/invocation/{awsRequestId}/response")]
